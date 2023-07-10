@@ -1,6 +1,6 @@
 <template>
     <div class="home">
-      <h1>Lista de personajes</h1>
+      <h1>Lista de SuperHeroes</h1>
       <div class="contenedor_tarjetas">
         <Tarjeta  v-for="superHero in posts" :key="superHero.id_heroe" :superHero="superHero"  />
       </div>

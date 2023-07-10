@@ -18,6 +18,7 @@ export default createStore({
           },
           body: JSON.stringify(heroe)
         })
+        window.location.href = '/'
         const resBE = await res.json()
         console.log(resBE)
       }
@@ -26,16 +27,17 @@ export default createStore({
         console.log(error)
       }
     },
-    async get_heroes({commit}){
+    async update({commit},heroe){
       try
       {
         const res = await fetch('http://localhost:3000/heroes',{
-          method: 'GET',
+          method: 'PUT',
           headers: {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify(heroe)
         })
+        window.location.href = '/'
         const resBE = await res.json()
         console.log(resBE)
       }
@@ -45,6 +47,8 @@ export default createStore({
       }
     }
   },
+  
+
   modules: {
     
   }
