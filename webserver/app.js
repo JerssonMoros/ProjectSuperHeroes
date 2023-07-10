@@ -1,143 +1,114 @@
-const express = require('express')
-const app = express()
-const mysql = require('mysql2');
+const express = require('express');
+const mysql = require('mysql2/promise');
+const config = require('./config');
+
+
+const app = express();
+app.use(express.json());
 
 // cors
 
 const cors = require('cors');
 var corsOptions = {
-   orogin: '*',
+   origin: '*',
    optionsSuccessStatus: 200
 }
 
 app.use(cors(corsOptions));
 
-const connection = mysql.createConnection({
-   host: 'localhost',
-   user: 'root',
-   password: '',
-   database: 'superheroes',
-   port: 3306
+const pool = mysql.createPool({
+   host: config.host,
+   user: config.user,
+   password: config.password,
+   database: config.database,
+   port: config.port,
+   waitForConnections: true,
+   connectionLimit: 10,
+   queueLimit: 0,
 });
-connection.connect((error) => {
-   if(error){
-      throw error;
-   }else{
-      console.log('Conexion correcta.');
-      
 
+app.use((req, res, next) => {
+   req.db = pool;
+   next();
+ });
+
+ // Medoto Get
+app.get('/heroes', async (req, res) => {
+   //Devuelve todos los elementos de la base de datos en la tabla heroes
+   try {
+      const [rows] = await req.db.query('SELECT * FROM heroes ORDER BY id_heroe DESC');
+      res.json(rows);
+   } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Error en el servidor' });
    }
 });
 
-app.get('/heroe', (req, res) => {
-   // Establecer la conexión a la base de datos
-   connection.connect((error) => {
-      if (error) {
-         res.status(500).json({ error: 'Error de conexión a la base de datos' });
-      } else {
-         // Ejecutar la consulta SELECT
-         connection.query('SELECT * FROM heroes', (error, results, fields) => {
-            if (error) {
-               res.status(500).json({ error: 'Error al ejecutar la consulta' });
-            } else {
-               res.json(results); // Devolver los resultados como respuesta JSON
-            }
-
-         });
-      }
-   });
-});
-
-app.get('/heroes', (req, res) => {
-   // Establecer la conexión a la base de datos
-   connection.connect((error) => {
-      if (error) {
-         res.status(500).json({ error: 'Error de conexión a la base de datos' });
-      } else {
-         // Ejecutar la consulta SELECT
-         connection.query('SELECT * FROM heroes', (error, results, fields) => {
-            if (error) {
-               res.status(500).json({ error: 'Error al ejecutar la consulta' });
-            } else {
-               res.json(results); // Devolver los resultados como respuesta JSON
-            }
-
-         });
-      }
-   });
-});
-
-app.get('/heroes', (req, res) => {
-   // Establecer la conexión a la base de datos
-   connection.connect((error) => {
-      if (error) {
-         res.status(500).json({ error: 'Error de conexión a la base de datos' });
-      } else {
-         // Ejecutar la consulta SELECT
-         connection.query('SELECT * FROM heroes', (error, results, fields) => {
-            if (error) {
-               res.status(500).json({ error: 'Error al ejecutar la consulta' });
-            } else {
-               res.json(results); // Devolver los resultados como respuesta JSON
-            }
-
-         });
-      }
-   });
-});
-
-app.delete('/heroes/:id', (req, res) => {
+app.get('/heroe/:id', async (req, res) => {
    const idHeroe = req.params.id;
-
-   // Establecer la conexión a la base de datos
-   connection.connect((error) => {
-      if (error) {
-         res.status(500).json({ error: 'Error de conexión a la base de datos' });
-      } else {
-         // Ejecutar la consulta DELETE
-         const query = 'DELETE FROM heroes WHERE id_heroe = ?';
-         connection.query(query, [idHeroe], (error, results, fields) => {
-            if (error) {
-               res.status(500).json({ error: 'Error al ejecutar la consulta' });
-            } else {
-               res.json({ message: 'Heroe eliminado correctamente' });
-            }
-
-         });
-      }
-   });
+   //filtra o busca un registro por su ID
+   try {
+      const [rows] = await req.db.query('SELECT * FROM heroes WHERE id_heroe = ?', [idHeroe]);
+      res.json(rows);
+   } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Error en el servidor' });
+   }
 });
 
-app.use(express.json());
+app.delete('/heroes/:id', async (req, res) => {
+   const idHeroe = req.params.id;
+   //Elimina el registro de la base de datos
+   try {
+      const [rows] = await req.db.query('DELETE FROM heroes WHERE id_heroe = ?', [idHeroe]);
+      res.json({ message: 'Heroe eliminado correctamente' });
+   } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Error en el servidor' });
+   }
 
-app.post('/heroes', (req, res) => {
+});
+
+
+app.post('/heroes', async (req, res) => {
    const { nombre_heroe, nombre_editorial, alter_ego, descripcion, imagen } = req.body;
-
-   // Establecer la conexión a la base de datos
-   connection.connect((error) => {
-      if (error) {
-         res.status(500).json({ error: 'Error de conexión a la base de datos' });
-      } else {
-         // Ejecutar la consulta INSERT
-         const query = 'INSERT INTO heroes (nombre_heroe, nombre_editorial, alter_ego, descripcion, imagen) VALUES (?, ?, ?, ?, ?)';
-         connection.query(query, [nombre_heroe, nombre_editorial, alter_ego, descripcion, imagen], (error, results, fields) => {
-            if (error) {
-               res.status(500).json({ error: 'Error al crear el superhéroe' });
-            } else {
-               res.json({ message: 'Superhéroe creado correctamente' });
-            }
-
-         });
-      }
-   });
+   // Crea el registro en la base de datos
+   try {
+      const [rows] = await req.db.query('INSERT INTO heroes (nombre_heroe, nombre_editorial, alter_ego, descripcion, imagen) VALUES (?, ?, ?, ?, ?)', 
+      [nombre_heroe, nombre_editorial, alter_ego, descripcion, imagen]);
+      res.json({ message: 'Superhéroe creado correctamente' });
+   } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Error en el servidor' });
+   }
 });
+
+app.put('/heroes', async (req, res) => {
+   const { id_heroe, nombre_heroe, nombre_editorial, alter_ego, descripcion, imagen } = req.body;
+   
+   try {
+     // Actualiza el registro en la base de datos
+const result = await req.db.query(
+       'UPDATE heroes SET nombre_heroe = ?, nombre_editorial = ?, alter_ego = ?, descripcion = ?, imagen = ? WHERE id_heroe = ?',
+       [nombre_heroe, nombre_editorial, alter_ego, descripcion, imagen, id_heroe]
+     );
+ 
+     // Verifica si se actualizó correctamente
+     if (result[0].affectedRows == 1) {
+       res.json({ message: 'Registro actualizado exitosamente' });
+     } else {
+       res.status(404).json({ error: 'Registro no encontrado' });
+     }
+   } catch (error) {
+     console.error(error);
+     res.status(500).json({ error: 'Error en el servidor' });
+   }
+ });
 
 
 app.get('*', (req, res) => {
-    res.sendFile(__dirname + '/public/404.html');
-    console.log('No encontro nada')
+   console.log('Error 404 | No se encontro nada')
 });
 
   
-
 app.listen(3000)
