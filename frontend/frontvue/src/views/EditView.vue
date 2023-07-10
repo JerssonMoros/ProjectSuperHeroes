@@ -72,10 +72,6 @@ export default {
   width: 50%;
   margin-top: 1%;
 }
-.image-container {
-  
-
-}
 
 .image-container {
   display: flex;
